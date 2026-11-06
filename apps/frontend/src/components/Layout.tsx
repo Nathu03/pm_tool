@@ -1,15 +1,17 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Trello, Users, Bot, GitBranch, Settings, LogOut, Bell } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Trello, Users, Bot, GitBranch, Settings, LogOut, Bell, Umbrella, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import clsx from 'clsx';
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/projects', label: 'Projects', icon: FolderKanban },
-  { to: '/team', label: 'Team', icon: Users },
-  { to: '/ai', label: 'AI Assistant', icon: Bot },
-  { to: '/integrations', label: 'Integrations', icon: GitBranch },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
+  { to: '/projects',    label: 'Projects',    icon: FolderKanban },
+  { to: '/team',        label: 'Team',        icon: Users },
+  { to: '/leave',       label: 'Leave',       icon: Umbrella },
+  { to: '/departments', label: 'Departments', icon: Building2 },
+  { to: '/ai',          label: 'AI Assistant',icon: Bot },
+  { to: '/integrations',label: 'Integrations',icon: GitBranch },
+  { to: '/settings',    label: 'Settings',    icon: Settings },
 ];
 
 export default function Layout() {

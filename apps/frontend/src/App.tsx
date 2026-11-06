@@ -10,6 +10,8 @@ import TeamPage from './pages/TeamPage';
 import AiAssistantPage from './pages/AiAssistantPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import SettingsPage from './pages/SettingsPage';
+import LeavePage from './pages/LeavePage';
+import DepartmentsPage from './pages/DepartmentsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="ai" element={<AiAssistantPage />} />
           <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="leave" element={<LeavePage />} />
+          <Route path="departments" element={<DepartmentsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

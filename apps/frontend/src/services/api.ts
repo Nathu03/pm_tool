@@ -53,14 +53,35 @@ export const usersApi = {
   deactivate: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
 };
 export const gitApi = {
-  addRepository: (projectId: string, data: any) =>
-    api.post(`/projects/${projectId}/repositories`, data).then((r) => r.data),
-  listRepositories: () =>
-    api.get('/repositories').then((r) => r.data),
-  getRepositoryDetail: (repoId: string) =>
-    api.get(`/repositories/${repoId}`).then((r) => r.data),
-  linkBranch: (taskId: string, repositoryId: string, branchName: string) =>
-    api.post(`/repositories/${repositoryId}/branches`, { taskId, branchName }).then((r) => r.data),
-  listProjectRepositories: (projectId: string) =>
-    api.get(`/projects/${projectId}/repositories`).then((r) => r.data),
+  addRepository: (projectId: string, data: any) => api.post(`/projects/${projectId}/repositories`, data).then((r) => r.data),
+  listRepositories: () => api.get('/repositories').then((r) => r.data),
+  getRepositoryDetail: (repoId: string) => api.get(`/repositories/${repoId}`).then((r) => r.data),
+  linkBranch: (taskId: string, repositoryId: string, branchName: string) => api.post(`/repositories/${repositoryId}/branches`, { taskId, branchName }).then((r) => r.data),
+  listProjectRepositories: (projectId: string) => api.get(`/projects/${projectId}/repositories`).then((r) => r.data),
+};
+export const leaveApi = {
+  getPolicies: () => api.get('/leave/policies').then((r) => r.data),
+  upsertPolicy: (type: string, data: any) => api.post(`/leave/policies/${type}`, data).then((r) => r.data),
+  getMyBalance: (year?: number) => api.get('/leave/balance', { params: { year } }).then((r) => r.data),
+  getAllBalances: (year?: number) => api.get('/leave/balance/all', { params: { year } }).then((r) => r.data),
+  createRequest: (data: any) => api.post('/leave/requests', data).then((r) => r.data),
+  getMyRequests: (params?: any) => api.get('/leave/requests/my', { params }).then((r) => r.data),
+  getAllRequests: (params?: any) => api.get('/leave/requests', { params }).then((r) => r.data),
+  approve: (id: string) => api.patch(`/leave/requests/${id}/approve`, {}).then((r) => r.data),
+  reject: (id: string, rejectionNote: string) => api.patch(`/leave/requests/${id}/reject`, { rejectionNote }).then((r) => r.data),
+  cancel: (id: string) => api.patch(`/leave/requests/${id}/cancel`, {}).then((r) => r.data),
+  getCalendar: (year: number, month: number) => api.get('/leave/calendar', { params: { year, month } }).then((r) => r.data),
+  getTeamSummary: (year?: number) => api.get('/leave/team-summary', { params: { year } }).then((r) => r.data),
+  getDeptApprovers: (userId: string) => api.get(`/leave/dept-approvers/${userId}`).then((r) => r.data),
+};
+export const departmentsApi = {
+  list: () => api.get('/departments').then((r) => r.data),
+  get: (id: string) => api.get(`/departments/${id}`).then((r) => r.data),
+  create: (data: any) => api.post('/departments', data).then((r) => r.data),
+  update: (id: string, data: any) => api.patch(`/departments/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/departments/${id}`).then((r) => r.data),
+  addSubLeader: (id: string, userId: string) => api.post(`/departments/${id}/sub-leaders`, { userId }).then((r) => r.data),
+  removeSubLeader: (id: string, userId: string) => api.delete(`/departments/${id}/sub-leaders/${userId}`).then((r) => r.data),
+  addMember: (id: string, userId: string) => api.post(`/departments/${id}/members`, { userId }).then((r) => r.data),
+  removeMember: (id: string, userId: string) => api.delete(`/departments/${id}/members/${userId}`).then((r) => r.data),
 };
