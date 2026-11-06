@@ -12,6 +12,7 @@ import { AiModule } from './ai/ai.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { LeaveModule } from './leave/leave.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     NotificationsModule,
     DashboardModule,
     WebhooksModule,
+    LeaveModule,
   ],
 })
 export class AppModule {}

@@ -27,6 +27,9 @@ model User {
   notifications   Notification[]
   aiConversations AiConversation[]
   timeLogs        TaskTimeLog[]
+  leaveRequests    LeaveRequest[]  @relation("LeaveRequests")
+  leaveApprovals   LeaveRequest[]  @relation("LeaveApprovals")
+  leaveBalances    LeaveBalance[]
   @@index([email])
   @@map("users")
 }
@@ -320,4 +323,74 @@ model Notification {
 enum NotificationType {
   TASK_ASSIGNED TASK_UPDATED TASK_COMMENTED TASK_STATUS_CHANGED
   TASK_DUE_SOON TASK_OVERDUE PR_OPENED PR_MERGED AI_REVIEW_COMPLETE MENTION
+}
+
+// ─── Leave Management ────────────────────────────────────────────────────────
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  UNPAID
+  COMPENSATORY
+  BEREAVEMENT
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeavePolicy {
+  id               String    @id @default(cuid())
+  leaveType        LeaveType @unique
+  daysAllowedPerYear Int
+  carryForwardDays  Int      @default(0)
+  requiresApproval  Boolean  @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model LeaveBalance {
+  id          String    @id @default(cuid())
+  userId      String
+  leaveType   LeaveType
+  year        Int
+  allocated   Float     @default(0)
+  used        Float     @default(0)
+  pending     Float     @default(0)
+  carryForward Float    @default(0)
+  user        User      @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, leaveType, year])
+}
+
+model LeaveRequest {
+  id           String      @id @default(cuid())
+  userId       String
+  approverId   String?
+  leaveType    LeaveType
+  status       LeaveStatus @default(PENDING)
+  startDate    DateTime
+  endDate      DateTime
+  days         Float
+  reason       String      @db.Text
+  rejectionNote String?    @db.Text
+  handoverNote  String?    @db.Text
+  attachmentUrl String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+
+  user         User        @relation("LeaveRequests", fields: [userId], references: [id])
+  approver     User?       @relation("LeaveApprovals", fields: [approverId], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }
