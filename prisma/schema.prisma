@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  fullName     String
+  avatarUrl    String?
+  passwordHash String
+  role         UserRole @default(DEVELOPER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+  projectMembers  ProjectMember[]
+  assignedTasks   TaskAssignee[]
+  createdTasks    Task[]          @relation("TaskCreator")
+  comments        TaskComment[]
+  activityLogs    TaskActivityLog[]
+  notifications   Notification[]
+  aiConversations AiConversation[]
+  timeLogs        TaskTimeLog[]
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole { ADMIN PROJECT_MANAGER TEAM_LEAD DEVELOPER QA_BA }
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  color       String   @default("#3B82F6")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  members      ProjectMember[]
+  tasks        Task[]
+  repositories Repository[]
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      UserRole @default(DEVELOPER)
+  joinedAt  DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Task {
+  id                 String       @id @default(cuid())
+  taskNumber         String       @unique
+  title              String
+  description        String?      @db.LongText
+  acceptanceCriteria String?      @db.Text
+  projectId          String
+  status             TaskStatus   @default(BACKLOG)
+  priority           TaskPriority @default(MEDIUM)
+  createdById        String
+  startDate          DateTime?
+  dueDate            DateTime?
+  estimatedHours     Float?
+  actualHours        Float?
+  isBlocked          Boolean      @default(false)
+  blockReason        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation("TaskCreator", fields: [createdById], references: [id])
+  assignees    TaskAssignee[]
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+  labels       TaskLabelMap[]
+  activityLogs TaskActivityLog[]
+  timeLogs     TaskTimeLog[]
+  branches     TaskBranch[]
+  commits      TaskCommit[]
+  pullRequests PullRequest[]
+  aiReviews    AiReview[]
+  @@index([projectId])
+  @@index([status])
+  @@index([taskNumber])
+  @@map("tasks")
+}
+
+enum TaskStatus { BACKLOG TODO IN_PROGRESS UAT AI_REVIEW QA_BA_REVIEW COMPLETED BLOCKED REOPENED }
+enum TaskPriority { LOW MEDIUM HIGH CRITICAL }
+
+model TaskAssignee {
+  id         String   @id @default(cuid())
+  taskId     String
+  userId     String
+  isPrimary  Boolean  @default(false)
+  assignedAt DateTime @default(now())
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([taskId, userId])
+  @@map("task_assignees")
+}
+
+model TaskLabel {
+  id    String       @id @default(cuid())
+  name  String       @unique
+  color String
+  tasks TaskLabelMap[]
+  @@map("task_labels")
+}
+
+model TaskLabelMap {
+  taskId  String
+  labelId String
+  task    Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  @@id([taskId, labelId])
+  @@map("task_labels_map")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String
+  parentId  String?
+  body      String   @db.Text
+  isEdited  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  task     Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author   User          @relation(fields: [authorId], references: [id])
+  parent   TaskComment?  @relation("Replies", fields: [parentId], references: [id])
+  replies  TaskComment[] @relation("Replies")
+  attachments TaskAttachment[]
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  commentId    String?
+  uploadedById String
+  filename     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  storageKey   String
+  url          String
+  createdAt    DateTime @default(now())
+  task    Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  comment TaskComment? @relation(fields: [commentId], references: [id])
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+model TaskActivityLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  action    String
+  fieldName String?
+  oldValue  String?  @db.Text
+  newValue  String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+  @@index([taskId])
+  @@map("task_activity_logs")
+}
+
+model TaskTimeLog {
+  id          String    @id @default(cuid())
+  taskId      String
+  userId      String
+  startedAt   DateTime
+  stoppedAt   DateTime?
+  hours       Float?
+  description String?
+  createdAt   DateTime  @default(now())
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+  @@index([taskId])
+  @@map("task_time_logs")
+}
+
+model Repository {
+  id            String      @id @default(cuid())
+  projectId     String
+  provider      GitProvider
+  name          String
+  fullName      String
+  url           String
+  defaultBranch String      @default("main")
+  webhookSecret String?
+  accessToken   String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  branches     TaskBranch[]
+  commits      TaskCommit[]
+  pullRequests PullRequest[]
+  @@index([projectId])
+  @@map("repositories")
+}
+
+enum GitProvider { GITHUB BITBUCKET GITLAB }
+
+model TaskBranch {
+  id           String   @id @default(cuid())
+  taskId       String
+  repositoryId String
+  branchName   String
+  createdAt    DateTime @default(now())
+  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId], references: [id])
+  @@index([taskId])
+  @@map("task_branches")
+}
+
+model TaskCommit {
+  id           String   @id @default(cuid())
+  taskId       String
+  repositoryId String
+  commitSha    String
+  message      String   @db.Text
+  authorName   String
+  authorEmail  String
+  committedAt  DateTime
+  url          String?
+  createdAt    DateTime @default(now())
+  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId], references: [id])
+  @@unique([repositoryId, commitSha])
+  @@index([taskId])
+  @@map("task_commits")
+}
+
+model PullRequest {
+  id           String   @id @default(cuid())
+  taskId       String
+  repositoryId String
+  prNumber     Int
+  title        String
+  url          String
+  status       PrStatus @default(OPEN)
+  sourceBranch String
+  targetBranch String
+  mergedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  repository Repository @relation(fields: [repositoryId], references: [id])
+  @@index([taskId])
+  @@map("pull_requests")
+}
+
+enum PrStatus { OPEN MERGED CLOSED DRAFT }
+
+model AiReview {
+  id        String         @id @default(cuid())
+  taskId    String
+  status    AiReviewStatus @default(PENDING)
+  provider  String
+  model     String
+  findings  Json?
+  summary   String?        @db.Text
+  score     Int?
+  passedAt  DateTime?
+  failedAt  DateTime?
+  createdAt DateTime       @default(now())
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@index([taskId])
+  @@map("ai_reviews")
+}
+
+enum AiReviewStatus { PENDING RUNNING PASSED FAILED SKIPPED }
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String?
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+  @@index([userId])
+  @@map("ai_conversations")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  taskId    String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  TASK_ASSIGNED TASK_UPDATED TASK_COMMENTED TASK_STATUS_CHANGED
+  TASK_DUE_SOON TASK_OVERDUE PR_OPENED PR_MERGED AI_REVIEW_COMPLETE MENTION
+}
