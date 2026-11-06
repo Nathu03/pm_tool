@@ -29,11 +29,19 @@ const NEXT_STATUS: Record<string, string[]> = {
   REOPENED: ['TODO'],
 };
 
+// Fixed: use lookup map instead of dynamic `w-${size} h-${size}` (Tailwind purges interpolated classes)
+const AVATAR_SIZES: Record<number, string> = {
+  5: 'w-5 h-5 text-[9px]',
+  6: 'w-6 h-6 text-[10px]',
+  7: 'w-7 h-7 text-xs',
+  8: 'w-8 h-8 text-sm',
+};
+
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const sizeClass = `w-${size} h-${size}`;
+  const cls = AVATAR_SIZES[size] ?? AVATAR_SIZES[6];
   return (
-    <div className={clsx(sizeClass, 'rounded-full bg-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-300 flex-shrink-0')}>
-      {name[0]?.toUpperCase()}
+    <div className={`${cls} rounded-full bg-indigo-500/30 flex items-center justify-center font-bold text-indigo-300 flex-shrink-0`}>
+      {name?.[0]?.toUpperCase() ?? '?'}
     </div>
   );
 }
@@ -115,6 +123,7 @@ function CommentItem({ comment, taskId, depth = 0 }: { comment: any; taskId: str
 
 export default function TaskPreviewModal({ taskId, projectId, onClose }: { taskId: string; projectId: string; onClose: () => void }) {
   const [newComment, setNewComment] = useState('');
+  const [movingTo, setMovingTo] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data: task, isLoading } = useQuery({
@@ -123,8 +132,13 @@ export default function TaskPreviewModal({ taskId, projectId, onClose }: { taskI
   });
 
   const updateStatus = useMutation({
-    mutationFn: (status: string) => tasksApi.update(projectId, taskId, { status }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['task', taskId] }); qc.invalidateQueries({ queryKey: ['tasks', projectId] }); },
+    mutationFn: (status: string) => { setMovingTo(status); return tasksApi.update(projectId, taskId, { status }); },
+    onSuccess: () => {
+      setMovingTo(null);
+      qc.invalidateQueries({ queryKey: ['task', taskId] });
+      qc.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+    onError: () => setMovingTo(null),
   });
 
   const addComment = useMutation({
@@ -159,8 +173,13 @@ export default function TaskPreviewModal({ taskId, projectId, onClose }: { taskI
               <div className="flex items-center gap-2 px-5 py-2.5 border-b border-slate-700 bg-slate-800/50 flex-shrink-0 flex-wrap">
                 <span className="text-[10px] text-slate-500 uppercase tracking-wide">Move to:</span>
                 {NEXT_STATUS[task.status].map((s) => (
-                  <button key={s} onClick={() => updateStatus.mutate(s)} disabled={updateStatus.isPending}
-                    className={clsx('text-xs px-3 py-1 rounded-full border transition-all hover:opacity-80', STATUS_STYLES[s])}>
+                  <button
+                    key={s}
+                    onClick={() => updateStatus.mutate(s)}
+                    disabled={updateStatus.isPending}
+                    className={clsx('text-xs px-3 py-1 rounded-full border transition-all hover:opacity-80 flex items-center gap-1.5', STATUS_STYLES[s])}
+                  >
+                    {movingTo === s && <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />}
                     {s.replace(/_/g, ' ')}
                   </button>
                 ))}
@@ -185,7 +204,7 @@ export default function TaskPreviewModal({ taskId, projectId, onClose }: { taskI
 
                 <div className="grid grid-cols-2 gap-3">
                   {[['Priority', task.priority], ['Due Date', task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '—'], ['Est. Hours', task.estimatedHours ?? '—'], ['Actual Hours', task.actualHours ?? '—']].map(([label, value]) => (
-                    <div key={label} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+                    <div key={String(label)} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
                       <p className="text-[10px] text-slate-500 uppercase mb-1">{label}</p>
                       <p className="text-sm font-medium text-slate-200">{value}</p>
                     </div>
