@@ -21,7 +21,9 @@ export const authApi = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }).then((r) => r.data),
   register: (data: any) => api.post('/auth/register', data).then((r) => r.data),
 };
-export const dashboardApi = { getStats: (projectId?: string) => api.get('/dashboard/stats', { params: { projectId } }).then((r) => r.data) };
+export const dashboardApi = {
+  getStats: (projectId?: string) => api.get('/dashboard/stats', { params: { projectId } }).then((r) => r.data),
+};
 export const projectsApi = {
   list: () => api.get('/projects').then((r) => r.data),
   get: (id: string) => api.get(`/projects/${id}`).then((r) => r.data),
@@ -51,6 +53,14 @@ export const usersApi = {
   deactivate: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
 };
 export const gitApi = {
-  addRepository: (projectId: string, data: any) => api.post(`/projects/${projectId}/repositories`, data).then((r) => r.data),
-  listRepositories: () => api.get('/repositories').then((r) => r.data),
+  addRepository: (projectId: string, data: any) =>
+    api.post(`/projects/${projectId}/repositories`, data).then((r) => r.data),
+  listRepositories: () =>
+    api.get('/repositories').then((r) => r.data),
+  getRepositoryDetail: (repoId: string) =>
+    api.get(`/repositories/${repoId}`).then((r) => r.data),
+  linkBranch: (taskId: string, repositoryId: string, branchName: string) =>
+    api.post(`/repositories/${repositoryId}/branches`, { taskId, branchName }).then((r) => r.data),
+  listProjectRepositories: (projectId: string) =>
+    api.get(`/projects/${projectId}/repositories`).then((r) => r.data),
 };
