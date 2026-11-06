@@ -1,0 +1,26 @@
+name: Feature Request
+description: Suggest a new feature
+labels: [enhancement]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Feature summary
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options: [Dashboard, Kanban, Task Detail, AI Assistant, Git Integration, Notifications, Auth, Settings, Other]
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
