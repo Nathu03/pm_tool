@@ -25,4 +25,11 @@ export class GitIntegrationsService {
   findRepositoriesByProject(projectId: string) {
     return this.prisma.repository.findMany({ where: { projectId } });
   }
+
+  findAllRepositoriesForUser(userId: string) {
+    return this.prisma.repository.findMany({
+      where: { project: { members: { some: { userId } } } },
+      include: { project: { select: { id: true, name: true, slug: true } } },
+    });
+  }
 }

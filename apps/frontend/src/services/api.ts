@@ -22,16 +22,35 @@ export const authApi = {
   register: (data: any) => api.post('/auth/register', data).then((r) => r.data),
 };
 export const dashboardApi = { getStats: (projectId?: string) => api.get('/dashboard/stats', { params: { projectId } }).then((r) => r.data) };
-export const projectsApi = { list: () => api.get('/projects').then((r) => r.data), get: (id: string) => api.get(`/projects/${id}`).then((r) => r.data), create: (data: any) => api.post('/projects', data).then((r) => r.data) };
+export const projectsApi = {
+  list: () => api.get('/projects').then((r) => r.data),
+  get: (id: string) => api.get(`/projects/${id}`).then((r) => r.data),
+  create: (data: any) => api.post('/projects', data).then((r) => r.data),
+};
 export const tasksApi = {
   list: (projectId: string, params?: any) => api.get(`/projects/${projectId}/tasks`, { params }).then((r) => r.data),
   get: (id: string) => api.get(`/tasks/${id}`).then((r) => r.data),
   create: (projectId: string, data: any) => api.post(`/projects/${projectId}/tasks`, data).then((r) => r.data),
   update: (projectId: string, id: string, data: any) => api.patch(`/projects/${projectId}/tasks/${id}`, data).then((r) => r.data),
+  remove: (projectId: string, id: string) => api.delete(`/projects/${projectId}/tasks/${id}`).then((r) => r.data),
+};
+export const commentsApi = {
+  create: (taskId: string, body: string, parentId?: string) => api.post(`/tasks/${taskId}/comments`, { body, parentId }).then((r) => r.data),
+  update: (id: string, body: string) => api.patch(`/tasks/comments/${id}`, { body }).then((r) => r.data),
+  remove: (id: string) => api.delete(`/tasks/comments/${id}`).then((r) => r.data),
 };
 export const aiApi = {
   chat: (message: string, taskId?: string) => api.post('/ai/chat', { message, taskId }).then((r) => r.data),
   queueReview: (taskId: string) => api.post(`/ai/review/${taskId}`).then((r) => r.data),
   generateTestCases: (taskId: string) => api.post(`/ai/test-cases/${taskId}`).then((r) => r.data),
 };
-export const usersApi = { list: (search?: string) => api.get('/users', { params: { search } }).then((r) => r.data) };
+export const usersApi = {
+  list: (search?: string) => api.get('/users', { params: { search } }).then((r) => r.data),
+  create: (data: any) => api.post('/users', data).then((r) => r.data),
+  updateRole: (id: string, role: string) => api.patch(`/users/${id}/role`, { role }).then((r) => r.data),
+  deactivate: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
+};
+export const gitApi = {
+  addRepository: (projectId: string, data: any) => api.post(`/projects/${projectId}/repositories`, data).then((r) => r.data),
+  listRepositories: () => api.get('/repositories').then((r) => r.data),
+};
