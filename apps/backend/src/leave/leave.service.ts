@@ -30,6 +30,25 @@ export class LeaveService {
     });
   }
 
+  async getDepartmentApprovers(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        department: {
+          include: {
+            lead: { select: { id: true, fullName: true, email: true } },
+            subLeaders: { include: { user: { select: { id: true, fullName: true, email: true } } } },
+          },
+        },
+      },
+    });
+    if (!user?.department) return [];
+    const approvers: any[] = [];
+    if (user.department.lead) approvers.push(user.department.lead);
+    for (const sl of user.department.subLeaders) approvers.push(sl.user);
+    return approvers;
+  }
+
   async getBalance(userId: string, year?: number) {
     const y = year || new Date().getFullYear();
     const balances = await this.prisma.leaveBalance.findMany({
@@ -83,16 +102,30 @@ export class LeaveService {
       where: {
         userId, deletedAt: null,
         status: { in: ['PENDING', 'APPROVED'] },
-        OR: [
-          { startDate: { lte: end }, endDate: { gte: start } },
-        ],
+        OR: [{ startDate: { lte: end }, endDate: { gte: start } }],
       },
     });
     if (overlap) throw new BadRequestException('You already have a leave request overlapping these dates');
 
+    // Auto-assign department lead as approver if available
+    let approverId: string | undefined;
+    const approvers = await this.getDepartmentApprovers(userId);
+    if (approvers.length > 0) approverId = approvers[0].id;
+
     const [request] = await this.prisma.$transaction([
       this.prisma.leaveRequest.create({
-        data: { userId, leaveType: data.leaveType as any, startDate: start, endDate: end, days, reason: data.reason, handoverNote: data.handoverNote },
+        data: {
+          userId,
+          leaveType: data.leaveType as any,
+          startDate: start,
+          endDate: end,
+          days,
+          reason: data.reason,
+          handoverNote: data.handoverNote,
+          backupEmployeeId: data.backupEmployeeId || null,
+          backupNote: data.backupNote,
+          approverId,
+        },
         include: { user: { select: { id: true, fullName: true, username: true } } },
       }),
       this.prisma.leaveBalance.update({
@@ -118,6 +151,7 @@ export class LeaveService {
       include: {
         user: { select: { id: true, fullName: true, username: true, role: true } },
         approver: { select: { id: true, fullName: true } },
+        backupEmployee: { select: { id: true, fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -129,6 +163,7 @@ export class LeaveService {
       include: {
         user: { select: { id: true, fullName: true, username: true, role: true } },
         approver: { select: { id: true, fullName: true } },
+        backupEmployee: { select: { id: true, fullName: true } },
       },
     });
   }
@@ -137,7 +172,6 @@ export class LeaveService {
     const req = await this.prisma.leaveRequest.findUnique({ where: { id } });
     if (!req) throw new NotFoundException();
     if (req.status !== 'PENDING') throw new BadRequestException('Only PENDING requests can be approved');
-
     const year = req.startDate.getFullYear();
     const [updated] = await this.prisma.$transaction([
       this.prisma.leaveRequest.update({ where: { id }, data: { status: 'APPROVED', approverId } }),
@@ -153,7 +187,6 @@ export class LeaveService {
     const req = await this.prisma.leaveRequest.findUnique({ where: { id } });
     if (!req) throw new NotFoundException();
     if (req.status !== 'PENDING') throw new BadRequestException('Only PENDING requests can be rejected');
-
     const year = req.startDate.getFullYear();
     const [updated] = await this.prisma.$transaction([
       this.prisma.leaveRequest.update({ where: { id }, data: { status: 'REJECTED', approverId, rejectionNote } }),
@@ -170,13 +203,11 @@ export class LeaveService {
     if (!req) throw new NotFoundException();
     if (req.userId !== userId) throw new ForbiddenException();
     if (!['PENDING', 'APPROVED'].includes(req.status)) throw new BadRequestException('Cannot cancel this request');
-
     const year = req.startDate.getFullYear();
     const data: any = { status: 'CANCELLED' };
     const balanceUpdate: any = {};
     if (req.status === 'PENDING') balanceUpdate.pending = { decrement: req.days };
     if (req.status === 'APPROVED') balanceUpdate.used = { decrement: req.days };
-
     const [updated] = await this.prisma.$transaction([
       this.prisma.leaveRequest.update({ where: { id }, data }),
       this.prisma.leaveBalance.update({

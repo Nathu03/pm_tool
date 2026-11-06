@@ -16,25 +16,51 @@ model User {
   passwordHash String
   role         UserRole @default(DEVELOPER)
   isActive     Boolean  @default(true)
+  departmentId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   deletedAt    DateTime?
-  projectMembers  ProjectMember[]
-  assignedTasks   TaskAssignee[]
-  createdTasks    Task[]          @relation("TaskCreator")
-  comments        TaskComment[]
-  activityLogs    TaskActivityLog[]
-  notifications   Notification[]
-  aiConversations AiConversation[]
-  timeLogs        TaskTimeLog[]
-  leaveRequests    LeaveRequest[]  @relation("LeaveRequests")
-  leaveApprovals   LeaveRequest[]  @relation("LeaveApprovals")
-  leaveBalances    LeaveBalance[]
+  projectMembers      ProjectMember[]
+  assignedTasks       TaskAssignee[]
+  createdTasks        Task[]                @relation("TaskCreator")
+  comments            TaskComment[]
+  activityLogs        TaskActivityLog[]
+  notifications       Notification[]
+  aiConversations     AiConversation[]
+  timeLogs            TaskTimeLog[]
+  leaveRequests       LeaveRequest[]        @relation("LeaveRequests")
+  leaveApprovals      LeaveRequest[]        @relation("LeaveApprovals")
+  leaveBalances       LeaveBalance[]
+  leaveBackupCovering LeaveRequest[]        @relation("LeaveBackup")
+  department          Department?           @relation("DeptMembers", fields: [departmentId], references: [id])
+  leadingDepartments  Department[]          @relation("DeptLead")
+  subLeaderOf         DepartmentSubLeader[]
   @@index([email])
   @@map("users")
 }
 
 enum UserRole { ADMIN PROJECT_MANAGER TEAM_LEAD DEVELOPER QA_BA }
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  leaderId    String?
+  lead        User?    @relation("DeptLead", fields: [leaderId], references: [id])
+  members     User[]   @relation("DeptMembers")
+  subLeaders  DepartmentSubLeader[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DepartmentSubLeader {
+  id           String     @id @default(cuid())
+  departmentId String
+  userId       String
+  department   Department @relation(fields: [departmentId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+  @@unique([departmentId, userId])
+}
 
 model Project {
   id          String   @id @default(cuid())
@@ -330,6 +356,8 @@ enum NotificationType {
 enum LeaveType {
   ANNUAL
   SICK
+  CASUAL
+  SHORT
   MATERNITY
   PATERNITY
   UNPAID
@@ -356,40 +384,42 @@ model LeavePolicy {
 }
 
 model LeaveBalance {
-  id          String    @id @default(cuid())
-  userId      String
-  leaveType   LeaveType
-  year        Int
-  allocated   Float     @default(0)
-  used        Float     @default(0)
-  pending     Float     @default(0)
-  carryForward Float    @default(0)
-  user        User      @relation(fields: [userId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  id           String    @id @default(cuid())
+  userId       String
+  leaveType    LeaveType
+  year         Int
+  allocated    Float     @default(0)
+  used         Float     @default(0)
+  pending      Float     @default(0)
+  carryForward Float     @default(0)
+  user         User      @relation(fields: [userId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   @@unique([userId, leaveType, year])
 }
 
 model LeaveRequest {
-  id           String      @id @default(cuid())
-  userId       String
-  approverId   String?
-  leaveType    LeaveType
-  status       LeaveStatus @default(PENDING)
-  startDate    DateTime
-  endDate      DateTime
-  days         Float
-  reason       String      @db.Text
-  rejectionNote String?    @db.Text
-  handoverNote  String?    @db.Text
-  attachmentUrl String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  deletedAt    DateTime?
+  id               String      @id @default(cuid())
+  userId           String
+  approverId       String?
+  backupEmployeeId String?
+  leaveType        LeaveType
+  status           LeaveStatus @default(PENDING)
+  startDate        DateTime
+  endDate          DateTime
+  days             Float
+  reason           String      @db.Text
+  rejectionNote    String?     @db.Text
+  handoverNote     String?     @db.Text
+  backupNote       String?     @db.Text
+  attachmentUrl    String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  deletedAt        DateTime?
 
-  user         User        @relation("LeaveRequests", fields: [userId], references: [id])
-  approver     User?       @relation("LeaveApprovals", fields: [approverId], references: [id])
+  user           User        @relation("LeaveRequests", fields: [userId], references: [id])
+  approver       User?       @relation("LeaveApprovals", fields: [approverId], references: [id])
+  backupEmployee User?       @relation("LeaveBackup", fields: [backupEmployeeId], references: [id])
 
   @@index([userId])
   @@index([status])

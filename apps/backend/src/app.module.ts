@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { LeaveModule } from './leave/leave.module';
+import { DepartmentsModule } from './departments/departments.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { LeaveModule } from './leave/leave.module';
     DashboardModule,
     WebhooksModule,
     LeaveModule,
+    DepartmentsModule,
   ],
 })
 export class AppModule {}
